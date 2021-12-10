@@ -1,2 +1,2 @@
 # Graphic Project
-'python train.py --dataset dataset'
+`python train.py --dataset dataset`
