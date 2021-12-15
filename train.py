@@ -38,7 +38,7 @@ parser.add_argument('--lamda', type=int, default=100, help='L1 regularization fa
 opt = parser.parse_args()
 
 cudnn.benchmark = True
-
+print(torch.cuda.is_available())  #needed for Google colab
 torch.cuda.manual_seed(opt.seed)
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 print('=> Loading datasets')
