@@ -19,13 +19,14 @@ def frame_loader(path):
         image_albedo = join(image, "albedo.exr")
         current_frame = pyexr.open(image_gbuffer)
         current_albedo = pyexr.open(image_albedo)
-        gbuffer = current_frame.get("View Layer")
+        key = list(current_frame.root_channels)[0]
+        gbuffer = current_frame.get(key)
         gt = gbuffer[:, :, 0:3]  # return (r,g,b) 3 channel matrix
         depth_1 = gbuffer[:,:,4].reshape((576, 1024, 1))
         depth = np.concatenate((depth_1, depth_1, depth_1), axis=2)
         direct = gbuffer[:, :, 5:8]
-        normal = gbuffer[:, :, 8:11]
-        albedo_buffer = current_albedo.get("View Layer")
+        normal = gbuffer[:, :, -3:]
+        albedo_buffer = current_albedo.get(key)
         albedo = albedo_buffer[:, :, 0:3]
         gt = np.transpose(gt, (2, 0, 1))[np.newaxis, :, :, :]  # adjust dimension
         gts.append(gt)
@@ -98,6 +99,6 @@ class DataLoaderHelper(data.Dataset):
         gts = torch.from_numpy(gts).float()  #* randScalar
         #flows = torch.from_numpy(flows).float()
         return load_data(albedo), load_data(direct), load_data(normal), load_data(depth), load_data(gts)
-
+        #return albedo, direct, normal, depth, gts
     def __len__(self):
         return len(self.image_filenames)
