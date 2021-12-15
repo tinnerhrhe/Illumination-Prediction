@@ -26,12 +26,13 @@ def frame_loader(path):
         current_albedo = pyexr.open(image_albedo)
         #current_frame.describe_channels()
         #current_albedo.describe_channels()
-        gbuffer = current_frame.get("ViewLayer")
+        key = list(current_frame.root_channels)[0]
+        gbuffer = current_frame.get(key)
         gt = gbuffer[:, :, 0:3]  # return (r,g,b) 3 channel matrix
         depth_1 = gbuffer[:,:,4].reshape((576, 1024, 1))
         depth = np.concatenate((depth_1, depth_1, depth_1), axis=2)
         direct = gbuffer[:, :, 5:8]
-        normal = gbuffer[:, :, 8:11]
+        normal = gbuffer[:, :, -3:]
         albedo_buffer = current_albedo.get("ViewLayer")
         albedo = albedo_buffer[:, :, 0:3]
         gt = np.transpose(gt, (2, 0, 1))[np.newaxis, :, :, :]  # adjust dimension
