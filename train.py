@@ -82,8 +82,8 @@ netD = D(opt.n_channel_input*4, opt.n_channel_output, opt.n_discriminator_filter
 
 criterion = nn.BCELoss()
 criterion_l1 = nn.L1Loss()
-criterion_ssim = pytorch_ssim.SSIM()
-criterion_msssim = pytorch_msssim.MS_SSIM()
+# criterion_ssim = pytorch_ssim.SSIM()
+# criterion_msssim = pytorch_msssim.MS_SSIM()
 
 albedo = torch.FloatTensor(opt.train_batch_size, opt.n_channel_input, 576, 1024)
 direct = torch.FloatTensor(opt.train_batch_size, opt.n_channel_input, 576, 1024)
@@ -100,7 +100,8 @@ netD = netD.cuda()
 netG = netG.cuda()
 criterion = criterion.cuda()
 criterion_l1 = criterion_l1.cuda()
-#criterion_ssim = pytorch_ssim.SSIM().cuda()
+# criterion_ssim = pytorch_ssim.SSIM().cuda()
+# criterion_msssim = pytorch_msssim.MS_SSIM().cuda()
 
 albedo = albedo.cuda()
 direct = direct.cuda()
@@ -178,8 +179,10 @@ def train(epoch):
         netG.zero_grad()
         output = netD(torch.cat((albedo, direct, normal, depth, fake_B), 1))
         label.resize_(output.size()).fill_(real_label)
+        
         err_g = criterion(output, label) + opt.lamda \
-            * criterion_l1(fake_B, gt) 
+            * criterion_l1(fake_B, gt) # +criterion_ssim(fake_B, gt) + criterion_msssim(fake_B, gt)
+            
         err_g.backward()
         d_x_gx_2 = output.data.mean()
         optimizerG.step()
@@ -195,20 +198,23 @@ def train(epoch):
             ))
 
 def save_checkpoint(epoch):
-    if not os.path.exists("checkpoint"):
-        os.mkdir("checkpoint")
+    _path= ""
+    if os.environ.get('KAGGLE_KERNEL_RUN_TYPE',''):#judge if run in the kaggle environment
+        _path = "/kaggle/working/"
+    if not os.path.exists(_path+"checkpoint"):
+        os.mkdir(_path+"checkpoint")
     if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
-        os.mkdir(os.path.join("checkpoint", opt.dataset))
-    net_g_model_out_path = "checkpoint/{}/netG_model_epoch_{}.pth".format(opt.dataset, epoch)
-    net_d_model_out_path = "checkpoint/{}/netD_model_epoch_{}.pth".format(opt.dataset, epoch)
+        os.mkdir(os.path.join(_path+"checkpoint", opt.dataset))
+    net_g_model_out_path = _path+"checkpoint/{}/netG_model_epoch_{}.pth".format(opt.dataset, epoch)
+    net_d_model_out_path = _path+"checkpoint/{}/netD_model_epoch_{}.pth".format(opt.dataset, epoch)
     torch.save({'epoch':epoch+1, 'state_dict_G': netG.state_dict(), 'optimizer_G':optimizerG.state_dict()}, net_g_model_out_path)
     torch.save({'state_dict_D': netD.state_dict(), 'optimizer_D':optimizerD.state_dict()}, net_d_model_out_path)
-    print("Checkpoint saved to {}".format("checkpoint" + opt.dataset))
+    print("Checkpoint saved to {}".format(_path+"checkpoint" + opt.dataset))
 
-    if not os.path.exists("validation"):
-        os.mkdir("validation")
-    if not os.path.exists(os.path.join("validation", opt.dataset)):
-        os.mkdir(os.path.join("validation", opt.dataset))
+    if not os.path.exists(_path+"validation"):
+        os.mkdir(_path+"validation")
+    if not os.path.exists(os.path.join(_path+"validation", opt.dataset)):
+        os.mkdir(os.path.join(_path+"validation", opt.dataset))
 
     for index, images in enumerate(val_data):
         (albedo_cpu, direct_cpu, normal_cpu, depth_cpu, gt_cpu) = (images[0][:, 0, :, :], images[1][:, 0, :, :], images[2][:, 0, :, :], images[3][:, 0, :, :], images[4][:, 0, :, :])
@@ -220,9 +226,9 @@ def save_checkpoint(epoch):
         out = netG(torch.cat((albedo, direct, normal, depth), 1))
         out = out.cpu()
         out_img = out.data[0]
-        save_image(out_img,"validation/{}/{}_Fake.png".format(opt.dataset, index))
-        save_image(gt_cpu[0],"validation/{}/{}_Real.png".format(opt.dataset, index))
-        save_image(direct_cpu[0],"validation/{}/{}_Direct.png".format(opt.dataset, index))
+        save_image(out_img,_path+"validation/{}/{}_Fake.png".format(opt.dataset, index))
+        save_image(gt_cpu[0],_path+"validation/{}/{}_Real.png".format(opt.dataset, index))
+        save_image(direct_cpu[0],_path+"validation/{}/{}_Direct.png".format(opt.dataset, index))
 
 
 
