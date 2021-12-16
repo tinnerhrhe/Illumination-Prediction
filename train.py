@@ -14,6 +14,9 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 from model import G, D, weights_init
 from util import save_image
+
+import pytorch_ssim
+import pytorch_msssim
 #from skimage.measure import compare_ssim as ssim
 #import pytorch_ssim
 
@@ -79,7 +82,8 @@ netD = D(opt.n_channel_input*4, opt.n_channel_output, opt.n_discriminator_filter
 
 criterion = nn.BCELoss()
 criterion_l1 = nn.L1Loss()
-
+criterion_ssim = pytorch_ssim.SSIM()
+criterion_msssim = pytorch_msssim.MS_SSIM()
 
 albedo = torch.FloatTensor(opt.train_batch_size, opt.n_channel_input, 576, 1024)
 direct = torch.FloatTensor(opt.train_batch_size, opt.n_channel_input, 576, 1024)
